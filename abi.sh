@@ -169,8 +169,8 @@ function gather_registry_cert () {
 }
 
 function validate_num_of_nodes () {
-    NUM_WORKERS="2"
-    NUM_MASTERS="3"
+    NUM_WORKERS=${CONFIG_agent_workers}
+    NUM_MASTERS=${CONFIG_agent_ctlplanes}
     re='^[0-9]+$'
     if ! [[ $NUM_WORKERS =~ $re ]] ; then
         echo "error:NUM_WORKERS: Not a number" >&2; exit 1
@@ -195,8 +195,8 @@ function validate_num_of_nodes () {
 cat << EOF > ${DIR}/agent-config.yaml
 apiVersion: v1alpha1
 metadata:
-  name: ${CLUSTER_NAME}
-rendezvousIP: "${rendezvous_VIP}"
+  name: ${CONFIG_agent_name}
+rendezvousIP: "${CONFIG_agent_rendezvousIP}"
 hosts:
 EOF
 # Templating the install-config.yaml
@@ -239,56 +239,120 @@ EOF
 
 
 
-
-
-
-function patch_agent_config () {
-    echo -e "\n+ Patching agent-config.yaml file adding the hosts"
-    NUM_WORKERS="2"
-    for i in $(seq $NUM_WORKERS -1 0)
-    do
-    echo "master-`expr $NUM_WORKERS - $i`"
-    cat << EOF >> agent-config.yaml
-    - name: ${WORKER_VM}
-      role: worker
-      bmc:
-        address: ipmi://IPMI_URL:6230
-        username: foo
-        password: bar
-        disableCertificateVerification: True
-      bootMACAddress: aa:aa:aa:aa:bd:0${w}
-    - hostname: "master-`expr $NUM_WORKERS - $i`"
-        role: master
-        rootDeviceHints:
-        deviceName: "/dev/sdb"
-        interfaces:
-        - name: eno1
-        macAddress: b8:ce:f6:56:48:aa
-        networkConfig:
-        interfaces:
-            - name: eno1
-            type: ethernet
-            state: up
-            mac-address: b8:ce:f6:56:48:aa
-            ipv4:
-                enabled: true
-                address:
-                - ip: 192.168.24.91
-                    prefix-length: 25
-                dhcp: false
-        dns-resolver:
-            config:
-            server:
-                - 192.168.24.80
-        routes:
-            config:
-            - destination: 0.0.0.0/0
-                next-hop-address: 192.168.24.1
-                next-hop-interface: eno1
-                table-id: 254
+NUM_WORKERS=0
+for i in $(seq 1 $NUM_WORKERS)
+do
+  var="CONFIG_agent_worker_$i"
+  var_1="${var}_hostname"
+  var_2="${var}_deviceName"
+  var_3="${var}_interfacename"
+  echo ${!var_3}
+  cat << EOF >> test.yaml
+  - hostname: ${!var_1}
+    role: master
+    rootDeviceHints:
+    deviceName: ${!var_2}
 EOF
-    done
+done
+
+function patch_master_agent_config () {
+    echo -e "\n+ Patching agent-config.yaml file adding the hosts"
+    NUM_WORKERS=${CONFIG_agent_workers}
+    NUM_MASTERS=${CONFIG_agent_ctlplanes}
+    for i in $(seq 1 $NUM_MASTERS)
+    do
+      var="CONFIG_agent_master_$i"
+      hostname="${var}_hostname"
+      deviceName="${var}_deviceName"
+      interfacename="${var}_interfacename"
+      interfacemacaddr="${var}_interfacemacaddress"
+      interfacetype="${var}_interfacetype"
+      interfaceipv4="${var}_interfaceipv4"
+      interfaceipv4prefix="${var}_interfaceprefix"
+      dnsserver="{var}_dnsserver"
+      routesdestination="{var}_routesdestination"
+      routesnextaddr="{var}_routesnextaddr
+      cat << EOF >> agent-config.yaml
+      - hostname: ${!hostname}
+          role: master
+          rootDeviceHints:
+          deviceName: ${!deviceName}
+          interfaces:
+          - name: ${!interfacename}
+          macAddress: ${!interfacemacaddr}
+          networkConfig:
+          interfaces:
+              - name: ${!interfacename}
+              type: ${!interfacetype}
+              state: up
+              mac-address: ${!interfacemacaddr}
+              ipv4:
+                  enabled: true
+                  address:
+                  - ip: ${!interfaceipv4}
+                      prefix-length: ${!interfaceipv4prefix}
+                  dhcp: false
+          dns-resolver:
+              config:
+              server:
+                  - ${!dnsserver}
+          routes:
+              config:
+              - destination: ${!routesdestination}
+                  next-hop-address: ${!routesnextaddr}
+                  next-hop-interface: ${!interfacename}
+                  table-id: ${!routesnextaddr}
+        EOF
+done
 }
 
-
-# 
+function patch_worker_agent_config () {
+    echo -e "\n+ Patching agent-config.yaml file adding the hosts"
+    NUM_WORKERS=${CONFIG_agent_workers}
+    NUM_MASTERS=${CONFIG_agent_ctlplanes}
+    for i in $(seq 1 $NUM_MASTERS)
+    do
+      var="CONFIG_agent_master_$i"
+      hostname="${var}_hostname"
+      deviceName="${var}_deviceName"
+      interfacename="${var}_interfacename"
+      interfacemacaddr="${var}_interfacemacaddress"
+      interfacetype="${var}_interfacetype"
+      interfaceipv4="${var}_interfaceipv4"
+      interfaceipv4prefix="${var}_interfaceprefix"
+      dnsserver="{var}_dnsserver"
+      routesdestination="{var}_routesdestination"
+      routesnextaddr="{var}_routesnextaddr
+      cat << EOF >> agent-config.yaml
+      - hostname: ${!hostname}
+          role: master
+          rootDeviceHints:
+          deviceName: ${!deviceName}
+          interfaces:
+          - name: ${!interfacename}
+          macAddress: ${!interfacemacaddr}
+          networkConfig:
+          interfaces:
+              - name: ${!interfacename}
+              type: ${!interfacetype}
+              state: up
+              mac-address: ${!interfacemacaddr}
+              ipv4:
+                  enabled: true
+                  address:
+                  - ip: ${!interfaceipv4}
+                      prefix-length: ${!interfaceipv4prefix}
+                  dhcp: false
+          dns-resolver:
+              config:
+              server:
+                  - ${!dnsserver}
+          routes:
+              config:
+              - destination: ${!routesdestination}
+                  next-hop-address: ${!routesnextaddr}
+                  next-hop-interface: ${!interfacename}
+                  table-id: ${!routesnextaddr}
+    EOF
+done
+}

@@ -4,7 +4,7 @@ global:
   port_offline_registry_fqdn: "5000"
   port_rhcos_cache_fqdn: "3000"
 agent:
-  baseDomain: hubcluster-1.lab.eng.cert.redhat.com 
+  name: hubcluster-1.lab.eng.cert.redhat.com 
   rendezvousIP: "192.168.24.91"
   master:
     -  { hostname: "master-0", deviceName: "/dev/sdb", interfacename: "eno1", interfacetype: "ethernet", interfacemacaddress: "b8:ce:f6:56:48:aa", interfaceipv4: "192.168.24.91", interfaceprefix: "25", dnsserver: "192.168.24.80", routesdestination: "0.0.0.0/0", routesnextaddr: "192.168.24.1", routesnextinterface: "eno1", routestableid: "254" }
@@ -12,9 +12,10 @@ agent:
     -  { hostname: "master-2", deviceName: "/dev/sdb", interfacename: "eno1", interfacetype: "ethernet", interfacemacaddress: "b8:ce:f6:56:48:aa", interfaceipv4: "192.168.24.91", interfaceprefix: "25", dnsserver: "192.168.24.80", routesdestination: "0.0.0.0/0", routesnextaddr: "192.168.24.1", routesnextinterface: "eno1", routestableid: "254" }
   worker:
     -  { hostname: "master-0", deviceName: "/dev/sdb", interfacename: "eno1", interfacetype: "ethernet", interfacemacaddress: "b8:ce:f6:56:48:aa", interfaceipv4: "192.168.24.91", interfaceprefix: "25", dnsserver: "192.168.24.80", routesdestination: "0.0.0.0/0", routesnextaddr: "192.168.24.1", routesnextinterface: "eno1", routestableid: "254" }
-    -  { hostname: "master-0", deviceName: "/dev/sdb", interfacename: "eno1", interfacetype: "ethernet", interfacemacaddress: "b8:ce:f6:56:48:aa", interfaceipv4: "192.168.24.91", interfaceprefix: "25", dnsserver: "192.168.24.80", routesdestination: "0.0.0.0/0", routesnextaddr: "192.168.24.1", routesnextinterface: "eno1", routestableid: "254" }
-    -  { hostname: "master-0", deviceName: "/dev/sdb", interfacename: "eno1", interfacetype: "ethernet", interfacemacaddress: "b8:ce:f6:56:48:aa", interfaceipv4: "192.168.24.91", interfaceprefix: "25", dnsserver: "192.168.24.80", routesdestination: "0.0.0.0/0", routesnextaddr: "192.168.24.1", routesnextinterface: "eno1", routestableid: "254" }
+    -  { hostname: "master-1", deviceName: "/dev/sdb", interfacename: "eno1", interfacetype: "ethernet", interfacemacaddress: "b8:ce:f6:56:48:aa", interfaceipv4: "192.168.24.91", interfaceprefix: "25", dnsserver: "192.168.24.80", routesdestination: "0.0.0.0/0", routesnextaddr: "192.168.24.1", routesnextinterface: "eno1", routestableid: "254" }
+    -  { hostname: "master-2", deviceName: "/dev/sdb", interfacename: "eno1", interfacetype: "ethernet", interfacemacaddress: "b8:ce:f6:56:48:aa", interfaceipv4: "192.168.24.91", interfaceprefix: "25", dnsserver: "192.168.24.80", routesdestination: "0.0.0.0/0", routesnextaddr: "192.168.24.1", routesnextinterface: "eno1", routestableid: "254" }
 install:
+  baseDomain: lab.eng.cert.redhat.co
   ctlplanes: "3"
   workers: "3"
   clusterNetwork:
