@@ -16,22 +16,25 @@ helpFunction()
    echo "Usage: $0 -a /apps/registry/pull-secret.json -b parameterB -c parameterC"
    echo -e "\t-a This parameter is requiring the path to the pull-secret.json. Example: /apps/registry/pull-secret.json. Please note, that the pull-secret.json should inlcude the public and also private registry information."
    echo -e "\t-b This parameter is requiring the OpenShift Container Platform version to be installed. Example: 4.12.2"
-   echo -e "\t-c This parameter is requiring the cluster-plan.yaml Example: /apps/registry/cluster-plan.yaml"
+   echo -e "\t-c This parameter is requiring the cluster-plan.yaml. Example: /apps/registry/cluster-plan.yaml"
+   echo -e "\t-d The use of this parameter its enabling fully disconnected mode. The Offline Registry and RHCOS Cache are assumed completed. Example: True. Default value is set to False"
    exit 1 # Exit script after printing help
 }
 
-while getopts "a:b:c:" opt
+while getopts "a:b:c:d:" opt
 do
+    export DEFAULT="False"
    case "$opt" in
-      a ) parameterA="$OPTARG" ;;
-      b ) parameterB="$OPTARG" ;;
-      c ) parameterC="$OPTARG" ;;
+      a ) parameterA="${OPTARG}" ;;
+      b ) parameterB="${OPTARG}" ;;
+      c ) parameterC="${OPTARG}" ;;
+      d ) parameterD="${OPTARG:-${DEFAULT}}" ;;
       ? ) helpFunction ;; # Print helpFunction in case parameter is non-existent
    esac
 done
 
 # Print helpFunction in case parameters are empty
-if [ -z "$parameterA" ] || [ -z "$parameterB" ] || [ -z "$parameterC" ]
+if [ -z "$parameterA" ] || [ -z "$parameterB" ] || [ -z "$parameterC" ] 
 then
    echo "Some or all of the parameters are empty";
    helpFunction
@@ -41,7 +44,7 @@ fi
 echo "$parameterA"
 echo "$parameterB"
 echo "$parameterC"
-
+echo "$parameterD"
 # This is a function that will parse the cluster-plan.yaml and translate it to global variables below
 function parse_yaml {
    local prefix=$2
