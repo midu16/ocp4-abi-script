@@ -44,7 +44,7 @@ fi
 echo "$parameterA"
 echo "$parameterB"
 echo "$parameterC"
-echo "$parameterD"
+echo "${parameterD:-${DEFAULT}}"
 # This is a function that will parse the cluster-plan.yaml and translate it to global variables below
 function parse_yaml {
    local prefix=$2
@@ -81,35 +81,44 @@ export PULLSECRET_FILE=$parameterA
 # we are going to use the localhost and port 5000 because this mirror will happen inside the registry container
 export LOCAL_REG="${CONFIG_global_offline_registry_fqdn}:${CONFIG_global_port_offline_registry_fqdn}"
 export LOCAL_REG_AUTH="$(cat ${PULLSECRET_FILE} | jq .auths.\"${LOCAL_REG}\".auth -r)"
-export LOCAL_RHCOS_CACHE="${CONFIG_global_rhcos_cache_fqdn}:${$CONFIG_global_port_rhcos_cache_fqdn}"
+export LOCAL_RHCOS_CACHE="${CONFIG_global_rhcos_cache_fqdn}:${CONFIG_global_port_rhcos_cache_fqdn}"
 export OCP_VERSION=$parameterB
 export VERSION=${OCP_VERSION}-x86_64
 export ICSP_NAME="ocp-${VERSION}"
 export WORKING_DIR=$(pwd)
 
-status_code=$(curl --write-out %{http_code} --silent --output /dev/null https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/openshift-client-linux.tar.gz)
-if [[ "$status_code" -ne 200 ]] ; then
-    echo "Site status changed to $status_code"
-else
-    echo "Downloading the oc binary ${OCP_VERSION}"
-    curl -O -L https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/openshift-client-linux.tar.gz ${WORKING_DIR}/
-    tar xf ${WORKING_DIR}/openshift-client-linux.tar.gz
-    export UPSTREAM_REPO=$(curl -s https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/release.txt | grep 'Pull From: quay.io' | awk -F ' ' '{print $3}')
-    export MACHINE_OS=$(curl -s https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/release.txt | grep 'machine-os' | awk -F ' ' '{print $2}'| head -1)
-    # debugg purposses 
-    echo ${UPSTREAM_REPO}
-    echo ${MACHINE_OS}
-    echo "The mirroring process will start:"
-    ${WORKING_DIR}/oc adm release mirror -a ${PULLSECRET_FILE} --from=${UPSTREAM_REPO} --to-release-image=${LOCAL_REG}/${LOCAL_REPO}:${VERSION} --to=${LOCAL_REG}/${LOCAL_REPO} --insecure=true
+if [[ "${parameterD:-${DEFAULT}}" == "False" ]]; then
+    # validating that the localhost can reach the mirror.openshift.com registry to download the pre-requisites
+    status_code=$(curl --write-out %{http_code} --silent --output /dev/null https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/openshift-client-linux.tar.gz)
+    if [[ "$status_code" -ne 200 ]] ; then
+        echo "Site status changed to $status_code"
+    else
+        echo "Downloading the oc binary ${OCP_VERSION}"
+        curl -O -L https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/openshift-client-linux.tar.gz ${WORKING_DIR}/
+        tar xf ${WORKING_DIR}/openshift-client-linux.tar.gz
+        export UPSTREAM_REPO=$(curl -s https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/release.txt | grep 'Pull From: quay.io' | awk -F ' ' '{print $3}')
+        export MACHINE_OS=$(curl -s https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/release.txt | grep 'machine-os' | awk -F ' ' '{print $2}'| head -1)
+        # debugg purposses 
+        echo ${UPSTREAM_REPO}
+        echo ${MACHINE_OS}
+        echo "The mirroring process will start:"
+        ${WORKING_DIR}/oc adm release mirror -a ${PULLSECRET_FILE} --from=${UPSTREAM_REPO} --to-release-image=${LOCAL_REG}/${LOCAL_REPO}:${VERSION} --to=${LOCAL_REG}/${LOCAL_REPO} --insecure=true
+    fi
+
+    status_code=$(curl --write-out %{http_code} --silent --output /dev/null https://rhcos.mirror.openshift.com/art/storage/prod/streams/${OCP_VERSION:0:-2}/builds/${MACHINE_OS}/x86_64/rhcos-${MACHINE_OS}-live.x86_64.iso)
+    if [[ "$status_code" -ne 200 ]] ; then
+        echo "Site status changed to $status_code"
+    else
+        echo "Downloading the raw RHCOS .iso for ${OCP_VERSION}"
+        curl -O -L https://rhcos.mirror.openshift.com/art/storage/prod/streams/${OCP_VERSION:0:-2}/builds/${MACHINE_OS}/x86_64/rhcos-${MACHINE_OS}-live.x86_64.iso ${WORKING_DIR}/
+    fi
+    else
+        echo "The installation will assume that the OfflineRegistry indicated in cluster-plan.yaml file has all the container base images
+            mirrored and the RHCOSCacheService its populated and reachable."
+        export MACHINE_OS=${CONFIG_global_machine_os}
 fi
 
-status_code=$(curl --write-out %{http_code} --silent --output /dev/null https://rhcos.mirror.openshift.com/art/storage/prod/streams/${OCP_VERSION:0:-2}/builds/${MACHINE_OS}/x86_64/rhcos-${MACHINE_OS}-live.x86_64.iso)
-if [[ "$status_code" -ne 200 ]] ; then
-    echo "Site status changed to $status_code"
-else
-    echo "Downloading the raw RHCOS .iso for ${OCP_VERSION}"
-    curl -O -L https://rhcos.mirror.openshift.com/art/storage/prod/streams/${OCP_VERSION:0:-2}/builds/${MACHINE_OS}/x86_64/rhcos-${MACHINE_OS}-live.x86_64.iso ${WORKING_DIR}/
-fi
+# templating the ImageContentSourcePOlicy file for later usage
 cat > ImageContentSourcePolicy << EOF
 apiVersion: operator.openshift.io/v1alpha1
 kind: ImageContentSourcePolicy
@@ -171,6 +180,14 @@ function gather_registry_cert () {
     fi
 }
 
+validate_sshkey
+# comment the cert gather registry because of the following scenario:
+# if the registry its in a remote location the answer is 000
+# [midu@midu ocp4-abi-script]$ status_code=$(curl --write-out %{http_code} --silent --output /dev/null https://inbacrnrdl0100.offline.oxtechnix.lan:5000)
+# [midu@midu ocp4-abi-script]$ echo $status_code
+# 000
+# gather_registry_cert()
+
 function validate_num_of_nodes () {
     NUM_WORKERS=${CONFIG_agent_workers}
     NUM_MASTERS=${CONFIG_agent_ctlplanes}
@@ -205,7 +222,7 @@ EOF
 # Templating the install-config.yaml
 cat << EOF > ${DIR}/install-config.yaml
 apiVersion: v1
-baseDomain: ${DOMAIN}
+baseDomain: ${CONFIG_install_baseDomain}
 networking:
   networkType: OVNKubernetes
   machineNetwork:
@@ -356,6 +373,6 @@ function patch_worker_agent_config () {
                   next-hop-address: ${!routesnextaddr}
                   next-hop-interface: ${!interfacename}
                   table-id: ${!routesnextaddr}
-    EOF
+        EOF
 done
 }
