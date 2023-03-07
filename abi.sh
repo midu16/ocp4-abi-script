@@ -170,12 +170,12 @@ function validate_sshkey () {
 
 function gather_registry_cert () {
     # get the certificate from your offline registry
-    status_code=$(curl --write-out %{http_code} --silent --output /dev/null https://${LOCAL_REG})
+    status_code=$(curl --write-out %{http_code} --silent --output /dev/null ${LOCAL_REG})
     if [[ "$status_code" -ne 200 ]] ; then
         echo "Site status changed to $status_code"
     else
         echo "Downloading certs from the Offline Registry"
-        ex +'/BEGIN CERTIFICATE/,/END CERTIFICATE/p' <(echo | openssl s_client -showcerts -connect ${LOCAL_REG}) -scq > $(pwd)/file.crt
+        echo -n | openssl s_client -connect ${LOCAL_REG} -servername ${CONFIG_global_offline_registry_fqdn} | openssl x509 > $(pwd)/file.crt
         export CRT_LOCAL_REG=$(cat $(pwd)/file.crt)
     fi
 }
