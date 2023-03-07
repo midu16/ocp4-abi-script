@@ -206,20 +206,20 @@ baseDomain: ${DOMAIN}
 networking:
   networkType: OVNKubernetes
   machineNetwork:
-  - cidr: ${IPIBM_CIDR}
+  - cidr: ${CONFIG_install_machineNetwork_1_cidr}
   clusterNetwork:
-  - cidr: ${IPIBM_CNET_CIDR}
-    hostPrefix: ${DEF_CNET_HOST_PREFIX}
+  - cidr: ${CONFIG_install_clusterNetwork_1_cidr}
+    hostPrefix: ${CONFIG_install_clusterNetwork_1_hostPrefix}
   serviceNetwork:
-  - ${IPIBM_SNET_CIDR}
+  - ${CONFIG_install_serviceNetwork_1_cidr}
 metadata:
-  name: ${CLUSTER_NAME}
+  name: ${CONFIG_install_name}
 compute:
 - name: worker
-  replicas: ${NUM_WORKERS}
+  replicas: ${CONFIG_install_workers}
 controlPlane:
   name: master
-  replicas: ${NUM_MASTERS}
+  replicas: ${CONFIG_install_ctlplanes}
 imageContentSources:
 - mirrors:
   - ${LOCAL_REG}/${LOCAL_REPO}
@@ -230,8 +230,8 @@ imageContentSources:
 platform:
   baremetal:
     clusterOSImage: http://${LOCAL_RHCOS_CACHE}/rhcos-${MACHINE_OS}-live.x86_64.iso
-    apiVIP: "${OCP_API_VIP}"
-    ingressVIP: "${INGRESS_VIP}"
+    apiVIP: "${CONFIG_install_platform_baremetal_1_apiVIP}"
+    ingressVIP: "${CONFIG_install_platform_baremetal_1_ingressVIP}"
 pullSecret: '{"auths":{"${LOCAL_REG}":{"auth":"${LOCAL_REG_AUTH}"}}}'
 additionalTrustBundle: '${CRT_LOCAL_REG}'
 sshKey: '${SSH_KEY}'
