@@ -159,7 +159,7 @@ function validate_sshkey () {
     # check if the sshkey exists on the host otherwise create it
     if [ -f ${HOME}/.ssh/id_rsa.pub ];
     then
-        echo "id_rsa exists."
+        echo "id_rsa exists. It wont be created!"
     else
         echo "id_rsa doesn't exists. It will be created!"
         ssh-keygen -q -t rsa -N '' -f ${HOME}/.ssh/id_rsa <<<y >/dev/null 2>&1
@@ -174,7 +174,7 @@ function gather_registry_cert () {
     if [[ "$status_code" -ne 200 ]] ; then
         echo "Site status changed to $status_code"
     else
-        echo "Downloading certs from the Offline Registry"
+        echo -e "\n+ Downloading certs from the Offline Registry"
         echo -n | openssl s_client -connect ${LOCAL_REG} -servername ${CONFIG_global_offline_registry_fqdn} | openssl x509 > $(pwd)/file.crt
         export CRT_LOCAL_REG=$(cat $(pwd)/file.crt)
     fi
@@ -189,25 +189,25 @@ validate_sshkey
 # gather_registry_cert()
 
 function validate_num_of_nodes () {
-    NUM_WORKERS=${CONFIG_agent_workers}
-    NUM_MASTERS=${CONFIG_agent_ctlplanes}
+    NUM_WORKERS=${CONFIG_install_workers}
+    NUM_MASTERS=${CONFIG_install_ctlplanes}
     re='^[0-9]+$'
     if ! [[ $NUM_WORKERS =~ $re ]] ; then
-        echo "error:NUM_WORKERS: Not a number" >&2; exit 1
+        echo -e "\n+ error:NUM_WORKERS: Not a number" >&2; exit 1
     else
         if [[ "${NUM_MASTERS}" == 3 ]] ; then
             echo ${NUM_WORKERS}
         else
-            echo "error:NUM_WORKERS: Its not correct! If NUM_MASTERS is 1 the NUM_WORKERS should be set to 0!"
+            echo -e "\n+ error:NUM_WORKERS: Its not correct! If NUM_MASTERS is 1 the NUM_WORKERS should be set to 0!"
         fi
     fi
     if ! [[ $NUM_MASTERS =~ $re ]] ; then
-        echo "error:NUM_MASTERS: Not a number" >&2; exit 1
+        echo -e "\n+ error:NUM_MASTERS: Not a number" >&2; exit 1
     else
         if [[ "${NUM_MASTERS}" == 1 ]] | [[ "${NUM_MASTERS}" == 3 ]] ; then
             echo ${NUM_MASTERS}
         else
-            echo "error:NUM_MASTERS: Its not correct! Should be a integer value either 1 or 3!"
+            echo -e "\n+ error:NUM_MASTERS: Its not correct! Should be a integer value either 1 or 3!"
         fi
     fi
 }
@@ -276,9 +276,9 @@ EOF
 done
 
 function patch_master_agent_config () {
-    echo -e "\n+ Patching agent-config.yaml file adding the masters"
-    NUM_WORKERS=${CONFIG_agent_workers}
-    NUM_MASTERS=${CONFIG_agent_ctlplanes}
+    NUM_WORKERS=${CONFIG_install_workers}
+    NUM_MASTERS=${CONFIG_install_ctlplanes}
+    echo -e "\n+ Patching agent-config.yaml file adding the ${NUM_MASTERS} - master nodes"
     for i in $(seq 1 $NUM_MASTERS)
     do
       var="CONFIG_agent_master_$i"
@@ -327,10 +327,10 @@ done
 }
 
 function patch_worker_agent_config () {
-    echo -e "\n+ Patching agent-config.yaml file adding the workers"
-    NUM_WORKERS=${CONFIG_agent_workers}
-    NUM_MASTERS=${CONFIG_agent_ctlplanes}
-    for i in $(seq 1 $NUM_MASTERS)
+    NUM_WORKERS=${CONFIG_install_workers}
+    NUM_MASTERS=${CONFIG_install_ctlplanes}
+    echo -e "\n+ Patching agent-config.yaml file adding the ${NUM_WORKERS} - worker nodes"
+    for i in $(seq 1 $NUM_WORKERS)
     do
       var="CONFIG_agent_master_$i"
       hostname="${var}_hostname"
@@ -344,35 +344,35 @@ function patch_worker_agent_config () {
       routesdestination="${var}_routesdestination"
       routesnextaddr="${var}_routesnextaddr"
       cat << EOF >> ${DIR}/agent-config.yaml
-      - hostname: ${!hostname}
-          role: master
-          rootDeviceHints:
-          deviceName: ${!deviceName}
-          interfaces:
-          - name: ${!interfacename}
-          macAddress: ${!interfacemacaddr}
-          networkConfig:
-          interfaces:
-              - name: ${!interfacename}
-              type: ${!interfacetype}
-              state: up
-              mac-address: ${!interfacemacaddr}
-              ipv4:
-                  enabled: true
-                  address:
-                  - ip: ${!interfaceipv4}
-                      prefix-length: ${!interfaceipv4prefix}
-                  dhcp: false
-          dns-resolver:
-              config:
-              server:
-                  - ${!dnsserver}
-          routes:
-              config:
-              - destination: ${!routesdestination}
-                  next-hop-address: ${!routesnextaddr}
-                  next-hop-interface: ${!interfacename}
-                  table-id: ${!routesnextaddr}
+  - hostname: ${!hostname}
+    role: master
+    rootDeviceHints:
+      deviceName: ${!deviceName}
+    interfaces:
+      - name: ${!interfacename}
+      macAddress: ${!interfacemacaddr}
+    networkConfig:
+      interfaces:
+        - name: ${!interfacename}
+          type: ${!interfacetype}
+          state: up
+          mac-address: ${!interfacemacaddr}
+          ipv4:
+            enabled: true
+            address:
+              - ip: ${!interfaceipv4}
+                prefix-length: ${!interfaceipv4prefix}
+            dhcp: false
+      dns-resolver:
+        config:
+          server:
+            - ${!dnsserver}
+      routes:
+        config:
+          - destination: ${!routesdestination}
+            next-hop-address: ${!routesnextaddr}
+            next-hop-interface: ${!interfacename}
+            table-id: ${!routesnextaddr}
 EOF
 done
 }
