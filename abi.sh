@@ -332,7 +332,7 @@ function patch_worker_agent_config () {
     echo -e "\n+ Patching agent-config.yaml file adding the ${NUM_WORKERS} - worker nodes"
     for i in $(seq 1 $NUM_WORKERS)
     do
-      var="CONFIG_agent_master_$i"
+      var="CONFIG_agent_worker_$i"
       hostname="${var}_hostname"
       deviceName="${var}_deviceName"
       interfacename="${var}_interfacename"
@@ -345,7 +345,7 @@ function patch_worker_agent_config () {
       routesnextaddr="${var}_routesnextaddr"
       cat << EOF >> ${DIR}/agent-config.yaml
   - hostname: ${!hostname}
-    role: master
+    role: worker
     rootDeviceHints:
       deviceName: ${!deviceName}
     interfaces:
@@ -377,7 +377,23 @@ EOF
 done
 }
 
+function generating_agent_based_installer () {
+  # oc adm release extract -a /apps/registry/pull-secret.json --command=openshift-install INBACRNRDL0100.offline.oxtechnix.lan:5000/ocp-release:4.12.0-x86_64
 
+  FILE=${WORKING_DIR}/openshift-install
+  if [ -f "$FILE" ]; then
+    echo -e "\n+ $FILE exists."
+  else
+    echo -e "\n+ $FILE doesnt exists. Generating.."
+    ${WORKING_DIR}/oc adm release extract --registry-config=${PULLSECRET_FILE}  --icsp-file=${WORKING_DIR}/ImageContentSource-install-config.yaml --command=openshift-install --to=${WORKING_DIR}/. ${LOCAL_REG}/${LOCAL_REPO}:${VERSION}
+  fi
+}
+
+function generating_discovery_iso () {
+  # ./openshift-install agent create image --dir . --log-level debug
+  echo -e "\n+ Generating the Discovery.iso in the ${DIR}"
+  ${WORKING_DIR}/openshift-install agent create image --dir ${DIR}/. --log-level debug
+}
 # this is the _main_ section:
 
 patch_master_agent_config
