@@ -2,7 +2,7 @@
 ###############################################################################################################
 # MAINTAINER: midu@redhat.com
 #
-# Prerequisite 
+# Prerequisite
 # - Offline Registry has been configured and its reachable from the host this script is run
 # - RHCOS_Cache has been configured and its reachable from the host this script is run
 #
@@ -34,7 +34,7 @@ do
 done
 
 # Print helpFunction in case parameters are empty
-if [ -z "$parameterA" ] || [ -z "$parameterB" ] || [ -z "$parameterC" ] 
+if [ -z "$parameterA" ] || [ -z "$parameterB" ] || [ -z "$parameterC" ]
 then
    echo "Some or all of the parameters are empty";
    helpFunction
@@ -98,7 +98,7 @@ if [[ "${parameterD:-${DEFAULT}}" == "False" ]]; then
         tar xf ${WORKING_DIR}/openshift-client-linux.tar.gz
         export UPSTREAM_REPO=$(curl -s https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/release.txt | grep 'Pull From: quay.io' | awk -F ' ' '{print $3}')
         export MACHINE_OS=$(curl -s https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/release.txt | grep 'machine-os' | awk -F ' ' '{print $2}'| head -1)
-        # debugg purposses 
+        # debugg purposses
         echo ${UPSTREAM_REPO}
         echo ${MACHINE_OS}
         echo "The mirroring process will start:"
@@ -276,7 +276,7 @@ EOF
 done
 
 function patch_master_agent_config () {
-    echo -e "\n+ Patching agent-config.yaml file adding the hosts"
+    echo -e "\n+ Patching agent-config.yaml file adding the masters"
     NUM_WORKERS=${CONFIG_agent_workers}
     NUM_MASTERS=${CONFIG_agent_ctlplanes}
     for i in $(seq 1 $NUM_MASTERS)
@@ -289,45 +289,45 @@ function patch_master_agent_config () {
       interfacetype="${var}_interfacetype"
       interfaceipv4="${var}_interfaceipv4"
       interfaceipv4prefix="${var}_interfaceprefix"
-      dnsserver="{var}_dnsserver"
-      routesdestination="{var}_routesdestination"
-      routesnextaddr="{var}_routesnextaddr
-      cat << EOF >> agent-config.yaml
-      - hostname: ${!hostname}
-          role: master
-          rootDeviceHints:
-          deviceName: ${!deviceName}
-          interfaces:
-          - name: ${!interfacename}
-          macAddress: ${!interfacemacaddr}
-          networkConfig:
-          interfaces:
-              - name: ${!interfacename}
-              type: ${!interfacetype}
-              state: up
-              mac-address: ${!interfacemacaddr}
-              ipv4:
-                  enabled: true
-                  address:
-                  - ip: ${!interfaceipv4}
-                      prefix-length: ${!interfaceipv4prefix}
-                  dhcp: false
-          dns-resolver:
-              config:
-              server:
-                  - ${!dnsserver}
-          routes:
-              config:
-              - destination: ${!routesdestination}
-                  next-hop-address: ${!routesnextaddr}
-                  next-hop-interface: ${!interfacename}
-                  table-id: ${!routesnextaddr}
-        EOF
+      dnsserver="${var}_dnsserver"
+      routesdestination="${var}_routesdestination"
+      routesnextaddr="${var}_routesnextaddr"
+      cat << EOF >> ${DIR}/agent-config.yaml
+  - hostname: ${!hostname}
+    role: master
+    rootDeviceHints:
+      deviceName: ${!deviceName}
+    interfaces:
+      - name: ${!interfacename}
+      macAddress: ${!interfacemacaddr}
+    networkConfig:
+      interfaces:
+        - name: ${!interfacename}
+          type: ${!interfacetype}
+          state: up
+          mac-address: ${!interfacemacaddr}
+          ipv4:
+            enabled: true
+            address:
+              - ip: ${!interfaceipv4}
+                prefix-length: ${!interfaceipv4prefix}
+            dhcp: false
+      dns-resolver:
+        config:
+          server:
+            - ${!dnsserver}
+      routes:
+        config:
+          - destination: ${!routesdestination}
+            next-hop-address: ${!routesnextaddr}
+            next-hop-interface: ${!interfacename}
+            table-id: ${!routesnextaddr}
+EOF
 done
 }
 
 function patch_worker_agent_config () {
-    echo -e "\n+ Patching agent-config.yaml file adding the hosts"
+    echo -e "\n+ Patching agent-config.yaml file adding the workers"
     NUM_WORKERS=${CONFIG_agent_workers}
     NUM_MASTERS=${CONFIG_agent_ctlplanes}
     for i in $(seq 1 $NUM_MASTERS)
@@ -340,10 +340,10 @@ function patch_worker_agent_config () {
       interfacetype="${var}_interfacetype"
       interfaceipv4="${var}_interfaceipv4"
       interfaceipv4prefix="${var}_interfaceprefix"
-      dnsserver="{var}_dnsserver"
-      routesdestination="{var}_routesdestination"
-      routesnextaddr="{var}_routesnextaddr
-      cat << EOF >> agent-config.yaml
+      dnsserver="${var}_dnsserver"
+      routesdestination="${var}_routesdestination"
+      routesnextaddr="${var}_routesnextaddr"
+      cat << EOF >> ${DIR}/agent-config.yaml
       - hostname: ${!hostname}
           role: master
           rootDeviceHints:
@@ -373,6 +373,12 @@ function patch_worker_agent_config () {
                   next-hop-address: ${!routesnextaddr}
                   next-hop-interface: ${!interfacename}
                   table-id: ${!routesnextaddr}
-        EOF
+EOF
 done
 }
+
+
+# this is the _main_ section:
+
+patch_master_agent_config
+patch_worker_agent_config
