@@ -87,7 +87,7 @@ export LOCAL_REG="${CONFIG_global_offline_registry_fqdn}:${CONFIG_global_port_of
 if [[ -f "$PULLSECRET_FILE" ]]; then
     echo "$PULLSECRET_FILE exists in the mentioned path!"
     export LOCAL_REG_AUTH="$(cat ${PULLSECRET_FILE} | jq .auths.\"${LOCAL_REG}\".auth -r)"
-else 
+else
     echo -e "\n+ $PULLSECRET_FILE DOES NOT exists in the mentioned path!"
     exit 1
 fi
@@ -105,10 +105,10 @@ if [[ "${parameterD:-${DEFAULT}}" == "False" ]]; then
     else
         echo "Downloading the oc binary ${OCP_VERSION}"
         curl -O -L https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/openshift-client-linux.tar.gz ${WORKING_DIR}/bin/
-        tar xf ${WORKING_DIR}/bin/openshift-client-linux.tar.gz
+        tar xf ${WORKING_DIR}/bin/openshift-client-linux.tar.gz --directory ${WORKING_DIR}/bin/
         echo "Downloading the oc-mirror binary ${OCP_VERSION}"
         curl -O -L https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/oc-mirror.tar.gz ${WORKING_DIR}/bin/
-        tar xf ${WORKING_DIR}/bin/oc-mirror.tar.gz
+        tar xf ${WORKING_DIR}/bin/oc-mirror.tar.gz --directory ${WORKING_DIR}/bin/
         export UPSTREAM_REPO=$(curl -s https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/release.txt | grep 'Pull From: quay.io' | awk -F ' ' '{print $3}')
         export MACHINE_OS=$(curl -s https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/release.txt | grep 'machine-os' | awk -F ' ' '{print $2}'| head -1)
         # debugg purposses
@@ -132,9 +132,9 @@ if [[ "${parameterD:-${DEFAULT}}" == "False" ]]; then
         # checking if the oc-cli and oc-mirror-cli binary tar are in the ${WORKING_DIR}/bin and untar them.
         if [[ -f "$WORKING_DIR/bin/openshift-client-linux.tar.gz" && -f "$WORKING_DIR/bin/oc-mirror.tar.gz" ]]; then
             echo "The binaries are going to be used from $WORKING_DIR/bin/"
-            tar xf ${WORKING_DIR}/bin/openshift-client-linux.tar.gz
-            tar xf ${WORKING_DIR}/bin/oc-mirror.tar.gz
-        else 
+            tar xf ${WORKING_DIR}/bin/openshift-client-linux.tar.gz --directory ${WORKING_DIR}/bin/
+            tar xf ${WORKING_DIR}/bin/oc-mirror.tar.gz --directory ${WORKING_DIR}/bin/
+        else
             echo -e "\n+ The binaries DOES NOT exists in the $WORKING_DIR/bin/ !"
             exit 1
         fi
@@ -399,7 +399,7 @@ function generating_discovery_iso () {
 }
 # this is the _main_ section:
 
-# templating the configuration files 
+# templating the configuration files
 patch_master_agent_config
 patch_worker_agent_config
 
