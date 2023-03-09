@@ -280,24 +280,6 @@ additionalTrustBundle: '${CRT_LOCAL_REG}'
 sshKey: '${SSH_KEY}'
 EOF
 
-
-
-NUM_WORKERS=0
-for i in $(seq 1 $NUM_WORKERS)
-do
-  var="CONFIG_agent_worker_$i"
-  var_1="${var}_hostname"
-  var_2="${var}_deviceName"
-  var_3="${var}_interfacename"
-  echo ${!var_3}
-  cat << EOF >> test.yaml
-  - hostname: ${!var_1}
-    role: master
-    rootDeviceHints:
-    deviceName: ${!var_2}
-EOF
-done
-
 function patch_master_agent_config () {
     NUM_WORKERS=${CONFIG_install_workers}
     NUM_MASTERS=${CONFIG_install_ctlplanes}
