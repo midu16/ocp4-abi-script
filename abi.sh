@@ -41,10 +41,13 @@ then
 fi
 
 # Begin script in case all parameters are correct
-echo "$parameterA"
-echo "$parameterB"
-echo "$parameterC"
-echo "${parameterD:-${DEFAULT}}"
+function debugg_param() {
+  echo "$parameterA"
+  echo "$parameterB"
+  echo "$parameterC"
+  echo "${parameterD:-${DEFAULT}}"
+}
+
 # This is a function that will parse the cluster-plan.yaml and translate it to global variables below
 function parse_yaml {
    local prefix=$2
@@ -80,7 +83,14 @@ export LOCAL_REPO="ocp-release"
 export PULLSECRET_FILE=$parameterA
 # we are going to use the localhost and port 5000 because this mirror will happen inside the registry container
 export LOCAL_REG="${CONFIG_global_offline_registry_fqdn}:${CONFIG_global_port_offline_registry_fqdn}"
-export LOCAL_REG_AUTH="$(cat ${PULLSECRET_FILE} | jq .auths.\"${LOCAL_REG}\".auth -r)"
+# validating that the pull secret exists on the mention path, othewise exit the process
+if [[ -f "$PULLSECRET_FILE" ]]; then
+    echo "$PULLSECRET_FILE exists in the mentioned path!"
+    export LOCAL_REG_AUTH="$(cat ${PULLSECRET_FILE} | jq .auths.\"${LOCAL_REG}\".auth -r)"
+else 
+    echo -e "\n+ $PULLSECRET_FILE DOES NOT exists in the mentioned path!"
+    exit 1
+fi
 export LOCAL_RHCOS_CACHE="${CONFIG_global_rhcos_cache_fqdn}:${CONFIG_global_port_rhcos_cache_fqdn}"
 export OCP_VERSION=$parameterB
 export VERSION=${OCP_VERSION}-x86_64
@@ -150,7 +160,7 @@ if [ -d "${DIR}" ];
 then
     echo "${DIR}directory exists."
 else
-	echo "${DIR}directory does not exist. It will be created!"
+	echo -e "\n+ ${DIR}directory does not exist. It will be created!"
     mkdir -p ${DIR}/openshift
     tree ${DIR}
 fi
