@@ -10,6 +10,8 @@ This repo is designed to deploy a Red Hat OpenShift cluster with ABI method on a
 
  - In a total disconnected environment the `oc-cli` and `oc-mirror-cli` are made available in the workdirectory of this project before usage.
 
+ - RHEL base Operating System
+
  # Quick Start
 
  ```bash

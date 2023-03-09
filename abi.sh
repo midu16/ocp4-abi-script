@@ -379,7 +379,6 @@ done
 
 function generating_agent_based_installer () {
   # oc adm release extract -a /apps/registry/pull-secret.json --command=openshift-install INBACRNRDL0100.offline.oxtechnix.lan:5000/ocp-release:4.12.0-x86_64
-
   FILE=${WORKING_DIR}/openshift-install
   if [ -f "$FILE" ]; then
     echo -e "\n+ $FILE exists."
@@ -396,5 +395,11 @@ function generating_discovery_iso () {
 }
 # this is the _main_ section:
 
+# templating the configuration files 
 patch_master_agent_config
 patch_worker_agent_config
+
+# generating the openshift-install cli
+generating_agent_based_installer
+# generating the discovery.iso
+generating_discovery_iso
