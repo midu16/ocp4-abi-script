@@ -104,15 +104,18 @@ if [[ "${parameterD:-${DEFAULT}}" == "False" ]]; then
         echo "Site status changed to $status_code"
     else
         echo "Downloading the oc binary ${OCP_VERSION}"
-        curl -O -L https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/openshift-client-linux.tar.gz ${WORKING_DIR}/
-        tar xf ${WORKING_DIR}/openshift-client-linux.tar.gz
+        curl -O -L https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/openshift-client-linux.tar.gz ${WORKING_DIR}/bin/
+        tar xf ${WORKING_DIR}/bin/openshift-client-linux.tar.gz
+        echo "Downloading the oc-mirror binary ${OCP_VERSION}"
+        curl -O -L https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/oc-mirror.tar.gz ${WORKING_DIR}/bin/
+        tar xf ${WORKING_DIR}/bin/oc-mirror.tar.gz
         export UPSTREAM_REPO=$(curl -s https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/release.txt | grep 'Pull From: quay.io' | awk -F ' ' '{print $3}')
         export MACHINE_OS=$(curl -s https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/release.txt | grep 'machine-os' | awk -F ' ' '{print $2}'| head -1)
         # debugg purposses
         echo ${UPSTREAM_REPO}
         echo ${MACHINE_OS}
         echo "The mirroring process will start:"
-        ${WORKING_DIR}/oc adm release mirror -a ${PULLSECRET_FILE} --from=${UPSTREAM_REPO} --to-release-image=${LOCAL_REG}/${LOCAL_REPO}:${VERSION} --to=${LOCAL_REG}/${LOCAL_REPO} --insecure=true
+        ${WORKING_DIR}/bin/oc adm release mirror -a ${PULLSECRET_FILE} --from=${UPSTREAM_REPO} --to-release-image=${LOCAL_REG}/${LOCAL_REPO}:${VERSION} --to=${LOCAL_REG}/${LOCAL_REPO} --insecure=true
     fi
 
     status_code=$(curl --write-out %{http_code} --silent --output /dev/null https://rhcos.mirror.openshift.com/art/storage/prod/streams/${OCP_VERSION:0:-2}/builds/${MACHINE_OS}/x86_64/rhcos-${MACHINE_OS}-live.x86_64.iso)
@@ -120,12 +123,22 @@ if [[ "${parameterD:-${DEFAULT}}" == "False" ]]; then
         echo "Site status changed to $status_code"
     else
         echo "Downloading the raw RHCOS .iso for ${OCP_VERSION}"
-        curl -O -L https://rhcos.mirror.openshift.com/art/storage/prod/streams/${OCP_VERSION:0:-2}/builds/${MACHINE_OS}/x86_64/rhcos-${MACHINE_OS}-live.x86_64.iso ${WORKING_DIR}/
+        curl -O -L https://rhcos.mirror.openshift.com/art/storage/prod/streams/${OCP_VERSION:0:-2}/builds/${MACHINE_OS}/x86_64/rhcos-${MACHINE_OS}-live.x86_64.iso ${WORKING_DIR}/bin/
     fi
     else
         echo "The installation will assume that the OfflineRegistry indicated in cluster-plan.yaml file has all the container base images
             mirrored and the RHCOSCacheService its populated and reachable."
         export MACHINE_OS=${CONFIG_global_machine_os}
+        # checking if the oc-cli and oc-mirror-cli binary tar are in the ${WORKING_DIR}/bin and untar them.
+        if [[ -f "$WORKING_DIR/bin/openshift-client-linux.tar.gz" && -f "$WORKING_DIR/bin/oc-mirror.tar.gz" ]]; then
+            echo "The binaries are going to be used from $WORKING_DIR/bin/"
+            tar xf ${WORKING_DIR}/bin/openshift-client-linux.tar.gz
+            tar xf ${WORKING_DIR}/bin/oc-mirror.tar.gz
+        else 
+            echo -e "\n+ The binaries DOES NOT exists in the $WORKING_DIR/bin/ !"
+            exit 1
+        fi
+
 fi
 
 # templating the ImageContentSourcePOlicy file for later usage
@@ -389,12 +402,11 @@ done
 
 function generating_agent_based_installer () {
   # oc adm release extract -a /apps/registry/pull-secret.json --command=openshift-install INBACRNRDL0100.offline.oxtechnix.lan:5000/ocp-release:4.12.0-x86_64
-  FILE=${WORKING_DIR}/openshift-install
-  if [ -f "$FILE" ]; then
-    echo -e "\n+ $FILE exists."
+  if [ -f "$WORKING_DIR/openshift-install" ]; then
+    echo -e "\n+ $WORKING_DIR/openshift-install exists."
   else
-    echo -e "\n+ $FILE doesnt exists. Generating.."
-    ${WORKING_DIR}/oc adm release extract --registry-config=${PULLSECRET_FILE}  --icsp-file=${WORKING_DIR}/ImageContentSource-install-config.yaml --command=openshift-install --to=${WORKING_DIR}/. ${LOCAL_REG}/${LOCAL_REPO}:${VERSION}
+    echo -e "\n+ $WORKING_DIR/openshift-install doesnt exists. Generating.."
+    ${WORKING_DIR}/bin/oc adm release extract --registry-config=${PULLSECRET_FILE}  --icsp-file=${WORKING_DIR}/ImageContentSource-install-config.yaml --command=openshift-install --to=${WORKING_DIR}/. ${LOCAL_REG}/${LOCAL_REPO}:${VERSION}
   fi
 }
 

@@ -40,7 +40,7 @@ Usage: ./abi.sh -a /apps/registry/pull-secret.json -b parameterB -c parameterC
 ```bash
 [midu@GFA2MKUN ocp4-abi-script]$ ./abi.sh -a ./path/to/pull-secret.json -b 4.12.2 -c cluster-plan.yaml -d True
 ```
-In the above use-case, when the deployment environment its total disconnected, the assumption is that the `oc-cli`, `oc-mirror-cli`, `Offline Registry` and `RHCOS Cache server` are made available before.
+In the above use-case, when the deployment environment its total disconnected, the assumption is that the `oc-cli`, `oc-mirror-cli`, `Offline Registry` and `RHCOS Cache server` are made available before. In the case of the `oc-cli` and `oc-mirror-cli` are made available in the `${HOME}/ocp4-abi-script/`. 
 
 - The usage in a connected environment:
 ```bash
