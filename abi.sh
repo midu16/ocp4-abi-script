@@ -171,7 +171,7 @@ EOF
 export DIR="${WORKING_DIR}/abi-workdir"
 if [ -d "${DIR}" ];
 then
-    echo "${DIR}directory exists."
+    echo "${DIR} directory exists."
 else
 	echo -e "\n+ ${DIR}directory does not exist. It will be created!"
     mkdir -p ${DIR}/openshift
@@ -304,7 +304,7 @@ function patch_master_agent_config () {
       deviceName: ${!deviceName}
     interfaces:
       - name: ${!interfacename}
-      macAddress: ${!interfacemacaddr}
+        macAddress: ${!interfacemacaddr}
     networkConfig:
       interfaces:
         - name: ${!interfacename}
@@ -355,7 +355,7 @@ function patch_worker_agent_config () {
       deviceName: ${!deviceName}
     interfaces:
       - name: ${!interfacename}
-      macAddress: ${!interfacemacaddr}
+        macAddress: ${!interfacemacaddr}
     networkConfig:
       interfaces:
         - name: ${!interfacename}
