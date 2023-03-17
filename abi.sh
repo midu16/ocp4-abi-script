@@ -1,5 +1,5 @@
 #!/bin/bash
-###############################################################################################################
+# ======================================================================
 # MAINTAINER: midu@redhat.com
 #
 # Prerequisite
@@ -7,38 +7,50 @@
 # - RHCOS_Cache has been configured and its reachable from the host this script is run
 #
 # This script is available ONLY for OCP GA versions. Any other releaseases are not supported.
-###############################################################################################################
+# ======================================================================
+
+# ======================================================================
+# Core program logic
+
+# set some printing colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;36m'
+MAGENTA='\033[0;35m'
+CYAN='\033[0;36m'
+NC='\033[0m'
 
 # defining the keyboard input variables
 helpFunction()
 {
-   echo ""
-   echo "Usage: $0 -a /apps/registry/pull-secret.json -b parameterB -c parameterC"
-   echo -e "\t-a This parameter is requiring the path to the pull-secret.json. Example: /apps/registry/pull-secret.json. Please note, that the pull-secret.json should inlcude the public and also private registry information."
-   echo -e "\t-b This parameter is requiring the OpenShift Container Platform version to be installed. Example: 4.12.2"
-   echo -e "\t-c This parameter is requiring the cluster-plan.yaml. Example: /apps/registry/cluster-plan.yaml"
-   echo -e "\t-d The use of this parameter its enabling fully disconnected mode. The Offline Registry and RHCOS Cache are assumed completed. Example: True. Default value is set to False"
-   exit 1 # Exit script after printing help
+  echo ""
+  echo "Usage: $0 -a /apps/registry/pull-secret.json -b parameterB -c parameterC"
+  echo -e "\t-a This parameter is requiring the path to the pull-secret.json. Example: /apps/registry/pull-secret.json. Please note, that the pull-secret.json should inlcude the public and also private registry information."
+  echo -e "\t-b This parameter is requiring the OpenShift Container Platform version to be installed. Example: 4.12.2"
+  echo -e "\t-c This parameter is requiring the cluster-plan.yaml. Example: /apps/registry/cluster-plan.yaml"
+  echo -e "\t-d The use of this parameter its enabling fully disconnected mode. The Offline Registry and RHCOS Cache are assumed completed. Example: True. Default value is set to False"
+  exit 1 # Exit script after printing help
 }
 
 while getopts "a:b:c:d:" opt
 do
     export DEFAULT="False"
-   case "$opt" in
+  case "$opt" in
       a ) parameterA="${OPTARG}" ;;
       b ) parameterB="${OPTARG}" ;;
       c ) parameterC="${OPTARG}" ;;
       d ) parameterD="${OPTARG:-${DEFAULT}}" ;;
       ? ) helpFunction ;; # Print helpFunction in case parameter is non-existent
-   esac
+  esac
 done
 
 # Print helpFunction in case parameters are empty
 if [ -z "$parameterA" ] || [ -z "$parameterB" ] || [ -z "$parameterC" ]
 then
-   echo "Some or all of the parameters are empty";
-   helpFunction
+  echo -e "${RED}Some or all of the parameters are empty${NC}";
+  helpFunction
 fi
+
 
 # Begin script in case all parameters are correct
 function debugg_param() {
@@ -78,6 +90,12 @@ function parse_yaml {
 # parsing the cluster-plan.yaml file to the CONFIG_* global variables
 eval $(parse_yaml $parameterC "CONFIG_")
 
+# validate all the input arguments before usage:
+validate_args() {
+}
+
+if [[ cat /apps/registry/pull-secret.json | jq .auths.\"inbacrnrdl0100.offline.oxtechnix.lan:5000\".auth -r -ne 0 ]]; then echo "hey" else echo "huo"; fi
+'if . == {} then error("empty document found") else . end | {"output": (.)}'
 # defining the global variables
 export LOCAL_REPO="ocp-release"
 export PULLSECRET_FILE=$parameterA
@@ -88,7 +106,7 @@ if [[ -f "$PULLSECRET_FILE" ]]; then
     echo "$PULLSECRET_FILE exists in the mentioned path!"
     export LOCAL_REG_AUTH="$(cat ${PULLSECRET_FILE} | jq .auths.\"${LOCAL_REG}\".auth -r)"
 else
-    echo -e "\n+ $PULLSECRET_FILE DOES NOT exists in the mentioned path!"
+    echo -e "${RED}\n+ $PULLSECRET_FILE DOES NOT exists in the mentioned path!${NC}"
     exit 1
 fi
 export LOCAL_RHCOS_CACHE="${CONFIG_global_rhcos_cache_fqdn}:${CONFIG_global_port_rhcos_cache_fqdn}"
@@ -101,7 +119,7 @@ if [[ "${parameterD:-${DEFAULT}}" == "False" ]]; then
     # validating that the localhost can reach the mirror.openshift.com registry to download the pre-requisites
     status_code=$(curl --write-out %{http_code} --silent --output /dev/null https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/openshift-client-linux.tar.gz)
     if [[ "$status_code" -ne 200 ]] ; then
-        echo "Site status changed to $status_code"
+        echo -e "${MAGENTA}\n Response Code changed to $status_code ${NC}"
     else
         echo "Downloading the oc binary ${OCP_VERSION}"
         curl -O -L https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OCP_VERSION}/openshift-client-linux.tar.gz ${WORKING_DIR}/bin/
@@ -120,7 +138,7 @@ if [[ "${parameterD:-${DEFAULT}}" == "False" ]]; then
 
     status_code=$(curl --write-out %{http_code} --silent --output /dev/null https://rhcos.mirror.openshift.com/art/storage/prod/streams/${OCP_VERSION:0:-2}/builds/${MACHINE_OS}/x86_64/rhcos-${MACHINE_OS}-live.x86_64.iso)
     if [[ "$status_code" -ne 200 ]] ; then
-        echo "Site status changed to $status_code"
+        echo -e "${MAGENTA}\n Response Code changed to $status_code ${NC}"
     else
         echo "Downloading the raw RHCOS .iso for ${OCP_VERSION}"
         curl -O -L https://rhcos.mirror.openshift.com/art/storage/prod/streams/${OCP_VERSION:0:-2}/builds/${MACHINE_OS}/x86_64/rhcos-${MACHINE_OS}-live.x86_64.iso ${WORKING_DIR}/bin/
