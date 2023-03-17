@@ -136,12 +136,12 @@ if [[ "${parameterD:-${DEFAULT}}" == "False" ]]; then
         ${WORKING_DIR}/bin/oc adm release mirror -a ${PULLSECRET_FILE} --from=${UPSTREAM_REPO} --to-release-image=${LOCAL_REG}/${LOCAL_REPO}:${VERSION} --to=${LOCAL_REG}/${LOCAL_REPO} --insecure=true
     fi
 
-    status_code=$(curl --write-out %{http_code} --silent --output /dev/null https://rhcos.mirror.openshift.com/art/storage/prod/streams/${OCP_VERSION:0:-2}/builds/${MACHINE_OS}/x86_64/rhcos-${MACHINE_OS}-live.x86_64.iso)
+    status_code=$(curl --write-out %{http_code} --silent --output /dev/null https://rhcos.mirror.openshift.com/art/storage/prod/streams/${OCP_VERSION:0:4}/builds/${MACHINE_OS}/x86_64/rhcos-${MACHINE_OS}-live.x86_64.iso)
     if [[ "$status_code" -ne 200 ]] ; then
         echo -e "${MAGENTA}\n Response Code changed to $status_code ${NC}"
     else
         echo "Downloading the raw RHCOS .iso for ${OCP_VERSION}"
-        curl -O -L https://rhcos.mirror.openshift.com/art/storage/prod/streams/${OCP_VERSION:0:-2}/builds/${MACHINE_OS}/x86_64/rhcos-${MACHINE_OS}-live.x86_64.iso ${WORKING_DIR}/bin/
+        curl -O -L https://rhcos.mirror.openshift.com/art/storage/prod/streams/${OCP_VERSION:0:4}/builds/${MACHINE_OS}/x86_64/rhcos-${MACHINE_OS}-live.x86_64.iso ${WORKING_DIR}/bin/
     fi
     else
         echo "The installation will assume that the OfflineRegistry indicated in cluster-plan.yaml file has all the container base images
@@ -398,6 +398,33 @@ function patch_worker_agent_config () {
             table-id: ${!routesnextaddr}
 EOF
 done
+}
+
+# templating the yaml manifests for day2-operators:
+function patch_day2_operator () {
+  # disconnected environment if True
+  if [ "${parameterD:-${DEFAULT}}" == "True" ]; then
+    cat << EOF >> ${DIR}/openshift/disable-operatorhub.yaml
+apiVersion: config.openshift.io/v1
+kind: OperatorHub
+metadata:
+  name: cluster
+spec:
+  disableAllDefaultSources: true
+EOF
+    cat << EOF >> ${DIR}/openshift/catalogSource-redhat-operator-index.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: redhat-operator-index
+  namespace: openshift-marketplace
+spec:
+  image: ${LOCAL_REG}/redhat/redhat-operator-index:v${OCP_VERSION:0:4}
+  sourceType: grpc
+EOF
+  else
+    echo -e "\n+ Connected environment has been selected!OperatorHub wont be changed!"
+fi
 }
 
 function generating_agent_based_installer () {
