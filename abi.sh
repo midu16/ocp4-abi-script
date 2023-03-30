@@ -93,14 +93,13 @@ eval $(parse_yaml $parameterC "CONFIG_")
 # validate all the input arguments before usage:
 validate_args() {
 }
-
-if [[ cat /apps/registry/pull-secret.json | jq .auths.\"inbacrnrdl0100.offline.oxtechnix.lan:5000\".auth -r -ne 0 ]]; then echo "hey" else echo "huo"; fi
-'if . == {} then error("empty document found") else . end | {"output": (.)}'
 # defining the global variables
 export LOCAL_REPO="ocp-release"
 export PULLSECRET_FILE=$parameterA
 # we are going to use the localhost and port 5000 because this mirror will happen inside the registry container
 export LOCAL_REG="${CONFIG_global_offline_registry_fqdn}:${CONFIG_global_port_offline_registry_fqdn}"
+if [[ cat ${PULLSECRET_FILE} | jq .auths.\"${LOCAL_REG}\".auth -r -ne 0 ]]; then echo "hey" else echo "huo"; fi
+'if . == {} then error("empty document found") else . end | {"output": (.)}'
 # validating that the pull secret exists on the mention path, othewise exit the process
 if [[ -f "$PULLSECRET_FILE" ]]; then
     echo "$PULLSECRET_FILE exists in the mentioned path!"
@@ -148,10 +147,12 @@ if [[ "${parameterD:-${DEFAULT}}" == "False" ]]; then
             mirrored and the RHCOSCacheService its populated and reachable."
         export MACHINE_OS=${CONFIG_global_machine_os}
         # checking if the oc-cli and oc-mirror-cli binary tar are in the ${WORKING_DIR}/bin and untar them.
-        if [[ -f "$WORKING_DIR/bin/openshift-client-linux.tar.gz" && -f "$WORKING_DIR/bin/oc-mirror.tar.gz" ]]; then
+        if [[ -f "${WORKING_DIR}/bin/openshift-client-linux.tar.gz" && -f "${WORKING_DIR}/bin/oc-mirror.tar.gz" ]]; then
             echo "The binaries are going to be used from $WORKING_DIR/bin/"
             tar xf ${WORKING_DIR}/bin/openshift-client-linux.tar.gz --directory ${WORKING_DIR}/bin/
             tar xf ${WORKING_DIR}/bin/oc-mirror.tar.gz --directory ${WORKING_DIR}/bin/
+	    echo -e "\n+ Generating the oc-cli for the offline environment"
+	    ${WORKING_DIR}/bin/oc adm release extract --command=${WORKING_DIR}/bin/oc-disconnected ${LOCAL_REG}/${LOCAL_REPO}:${VERSION} -a ${PULLSECRET_FILE}
         else
             echo -e "\n+ The binaries DOES NOT exists in the $WORKING_DIR/bin/ !"
             exit 1
